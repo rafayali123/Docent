@@ -56,22 +56,38 @@
 
 from app.services.vector_store import search_chunks
 from app.services.llm import generate_answer
-# Import embedding generator from your actual embeddings file
 from app.services.embeddings import generate_embedding 
 
-def ask_question(question: str) -> str:
+
+def ask_question(question: str, document_id: str) -> str:
     # 1. Convert question string to vector embedding
     query_embedding = generate_embedding(question)
 
-    # 2. Query ChromaDB using the embedding vector
-    results = search_chunks(query_embedding, n_results=5)
+    # 2. Query ChromaDB filtered strictly by document_id (Updated to 5 results)
+    results = search_chunks(
+        query_embedding=query_embedding,
+        document_id=document_id,
+        n_results=5,
+    )
 
     retrieved_docs = results.get("documents", [[]])[0]
-    
-    doc_context = "\n\n".join(retrieved_docs) if retrieved_docs else ""
 
-    print("--- RETRIEVED CONTEXT ---")
-    print(doc_context)
-    print("------------------------")
+    # 3. Handle empty document context fallback
+    if not retrieved_docs:
+        return (
+            "I could not find relevant information "
+            "in the selected document."
+        )
 
+    # 4. Clean, structured RAG logging for development/verification
+    print(f"\n[ RAG ] Document: {document_id}")
+    print(f"[ RAG ] Retrieved chunks: {len(retrieved_docs)}")
+    for index, document in enumerate(retrieved_docs, start=1):
+        preview = document[:200].replace("\n", " ")
+        print(f"[ RAG ] Chunk {index}: {preview}...")
+    print()
+
+    doc_context = "\n\n".join(retrieved_docs)
+
+    # 5. Generate LLM response using document context
     return generate_answer(question, doc_context)

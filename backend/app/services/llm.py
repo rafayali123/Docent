@@ -56,23 +56,29 @@
 import ollama
 
 def generate_answer(question: str, context: str) -> str:
-    prompt = f"""You are Docent, an AI document assistant.
+    system_instruction = (
+        "You are an AI PDF Study Assistant.\n\n"
+        "Answer the user's question using ONLY the provided document context.\n\n"
+        "If the answer cannot be found in the context, clearly say:\n"
+        "\"I couldn't find this information in the document.\"\n\n"
+        "Do not invent facts.\n"
+        "Do not use outside knowledge.\n"
+        "Keep the answer clear and educational."
+    )
 
-Answer the question strictly based on the context provided.
-If the exact answer isn't word-for-word present, try to infer the answer from relevant details in the context.
-Only if the context has no relation to the question at all, respond that the information is not available in the provided document.
-
-Context:
-{context}
-
-Question:
-{question}
-
-Answer:"""
+    user_content = f"DOCUMENT CONTEXT:\n{context}\n\nUSER QUESTION:\n{question}\n\nANSWER:"
 
     response = ollama.chat(
-        model="llama3.2:3b",
-        messages=[{"role": "user", "content": prompt}]
+        model="qwen2.5:1.5b",
+        messages=[
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": user_content}
+        ],
+        options={
+            "temperature": 0.1,
+            "num_thread": 4,  # Keeps CPU usage low to prevent laptop freezes
+        },
+        keep_alive="0s"  # Immediately frees up RAM after generating the answer
     )
 
     return response["message"]["content"]

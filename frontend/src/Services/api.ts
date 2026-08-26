@@ -1,13 +1,16 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://127.0.0.1:8000/api",
+  baseURL: import.meta.env.VITE_API_URL || "http://127.0.0.1:8000/api",
+  timeout: 120000,
 });
 
-interface UploadResponse {
+export interface UploadResponse {
   message: string;
+  document_id: string;
   filename: string;
-  chunks: number;
+  chunks?: number;
+  total_pages?: number;
 }
 
 interface ChatResponse {
@@ -15,11 +18,10 @@ interface ChatResponse {
   answer: string;
 }
 
-export const uploadPDF = async (
+export const uploadFile = async (
   file: File
 ): Promise<UploadResponse> => {
   const formData = new FormData();
-
   formData.append("file", file);
 
   const response = await API.post<UploadResponse>(
@@ -31,12 +33,14 @@ export const uploadPDF = async (
 };
 
 export const askQuestion = async (
-  question: string
+  question: string,
+  documentId: string
 ): Promise<ChatResponse> => {
   const response = await API.post<ChatResponse>(
     "/chat",
     {
       question,
+      document_id: documentId,
     }
   );
 
