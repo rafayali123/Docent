@@ -1,72 +1,25 @@
-# import chromadb
+from app.services.supabase_client import supabase
 
 
-# client = chromadb.PersistentClient(
-#     path="data/chroma"
-# )
+def create_document(filename: str) -> str:
+    """
+    Creates a new document record in Supabase and returns its UUID.
+    """
+    response = (
+        supabase
+        .table("documents")
+        .insert({
+            "filename": filename,
+        })
+        .execute()
+    )
 
+    if not response.data:
+        raise RuntimeError(
+            "Failed to create document."
+        )
 
-# collection = client.get_or_create_collection(
-#     name="pdf_documents"
-# )
-
-
-# def add_chunks(
-#     chunks: list[str],
-#     embeddings: list[list[float]]
-# ):
-#     ids = [
-#         f"chunk_{index}"
-#         for index in range(len(chunks))
-#     ]
-
-#     collection.add(
-#         ids=ids,
-#         documents=chunks,
-#         embeddings=embeddings
-#     )
-
-
-# def search_chunks(
-#     query_embedding: list[float],
-#     n_results: int = 3
-# ):
-#     results = collection.query(
-#         query_embeddings=[query_embedding],
-#         n_results=n_results
-#     )
-
-#     return results
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-import chromadb
-
-# Initialize persistent client and single collection for all documents
-client = chromadb.PersistentClient(path="data/chroma")
-collection = client.get_or_create_collection(name="pdf_documents")
+    return response.data[0]["id"]
 
 
 def add_chunks(
@@ -75,27 +28,27 @@ def add_chunks(
     document_id: str
 ):
     """
-    Stores document chunks and embeddings with metadata isolating them by document_id.
+    Stores document chunks and their vector embeddings into Supabase.
     """
-    ids = [
-        f"{document_id}_{index}"
-        for index in range(len(chunks))
-    ]
+    rows = []
 
-    metadatas = [
-        {
+    for index, (chunk, embedding) in enumerate(
+        zip(chunks, embeddings)
+    ):
+        rows.append({
             "document_id": document_id,
+            "content": chunk,
             "chunk_index": index,
-        }
-        for index in range(len(chunks))
-    ]
+            "embedding": embedding,
+        })
 
-    collection.add(
-        ids=ids,
-        documents=chunks,
-        embeddings=embeddings,
-        metadatas=metadatas,
-    )
+    if rows:
+        (
+            supabase
+            .table("document_chunks")
+            .insert(rows)
+            .execute()
+        )
 
 
 def search_chunks(
@@ -104,14 +57,16 @@ def search_chunks(
     n_results: int = 3,
 ):
     """
-    Queries ChromaDB filtering strictly by the specified document_id.
+    Queries Supabase using the match_document_chunks RPC function,
+    filtering strictly by the specified document_id.
     """
-    results = collection.query(
-        query_embeddings=[query_embedding],
-        n_results=n_results,
-        where={
-            "document_id": document_id
+    response = supabase.rpc(
+        "match_document_chunks",
+        {
+            "query_embedding": query_embedding,
+            "match_document_id": document_id,
+            "match_count": n_results,
         },
-    )
+    ).execute()
 
-    return results
+    return response.data or []

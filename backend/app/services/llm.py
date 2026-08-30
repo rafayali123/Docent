@@ -53,32 +53,36 @@
 
 
 
-import ollama
+import os
+from google import genai
 
-def generate_answer(question: str, context: str) -> str:
-    system_instruction = (
-        "You are an AI PDF Study Assistant.\n\n"
-        "Answer the user's question using ONLY the provided document context.\n\n"
-        "If the answer cannot be found in the context, clearly say:\n"
-        "\"I couldn't find this information in the document.\"\n\n"
-        "Do not invent facts.\n"
-        "Do not use outside knowledge.\n"
-        "Keep the answer clear and educational."
+# Initialize the official Google GenAI client
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
+def generate_answer(
+    question: str,
+    context: str,
+) -> str:
+    prompt = f"""You are an AI PDF Study Assistant.
+
+Answer the user's question using ONLY the provided document context.
+
+- If the answer is present in the context, provide a clear and educational explanation.
+- If the answer cannot be found in the context at all, respond with EXACTLY and ONLY:
+"I couldn't find this information in the document."
+
+Do not invent facts. Do not use outside knowledge.
+
+DOCUMENT CONTEXT:
+{context}
+
+USER QUESTION:
+{question}
+"""
+
+    response = client.models.generate_content(
+        model=os.getenv("LLM_MODEL", "gemini-3.5-flash-lite"),
+        contents=prompt,
     )
 
-    user_content = f"DOCUMENT CONTEXT:\n{context}\n\nUSER QUESTION:\n{question}\n\nANSWER:"
-
-    response = ollama.chat(
-        model="qwen2.5:1.5b",
-        messages=[
-            {"role": "system", "content": system_instruction},
-            {"role": "user", "content": user_content}
-        ],
-        options={
-            "temperature": 0.1,
-            "num_thread": 4,  # Keeps CPU usage low to prevent laptop freezes
-        },
-        keep_alive="0s"  # Immediately frees up RAM after generating the answer
-    )
-
-    return response["message"]["content"]
+    return response.text

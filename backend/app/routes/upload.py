@@ -5,10 +5,10 @@ import shutil
 from app.services.pdf_loader import extract_text_from_pdf
 from app.services.chunker import chunk_text
 from app.services.embeddings import generate_embedding
-from app.services.vector_store import add_chunks
+from app.services.vector_store import create_document, add_chunks
 
 
-router = APIRouter(prefix="/api", tags=["Upload"])
+router = APIRouter(tags=["Upload"])
 
 
 UPLOAD_DIR = Path("data/uploads")
@@ -67,14 +67,14 @@ async def upload_pdf(file: UploadFile = File(...)):
             for chunk in chunks
         ]
 
-        # Use filename as document_id
-        document_id = file.filename
+        # 4. Create document entry in Supabase and get the generated UUID
+        document_id = create_document(file.filename)
 
-        # Store document-specific chunks in ChromaDB
+        # 5. Store chunks and embeddings linked to the Supabase document_id
         add_chunks(
+            document_id=document_id,
             chunks=chunks,
             embeddings=embeddings,
-            document_id=document_id
         )
 
         return {

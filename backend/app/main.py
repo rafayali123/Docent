@@ -19,7 +19,7 @@ frontend_url = os.getenv(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_url],
+    allow_origins=["*"],  # Allow all origins for development testing
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -1,33 +1,3 @@
-# import pymupdf
-
-
-# def extract_text_from_pdf(file_path: str) -> str:
-#     document = pymupdf.open(file_path)
-
-#     pages_text = []
-
-#     for page in document:
-#         text = page.get_text("text", sort=True)
-#         pages_text.append(text)
-
-#     document.close()
-
-#     return "\n".join(pages_text)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import pymupdf
 import pytesseract
 from pdf2image import convert_from_path
