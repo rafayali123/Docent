@@ -40,3 +40,11 @@ def root():
     return {
         "message": "AI PDF Study Assistant API is running."
     }
+
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "ok",
+        "service": "AI PDF Study Assistant",
+    }
